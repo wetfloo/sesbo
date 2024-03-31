@@ -4,6 +4,8 @@ mod util;
 
 use axum::extract::Path;
 use axum::routing::get;
+use clap::Parser;
+use cli::CliArgs;
 use response::err::{KvReadError, KvWriteError};
 use response::ok::{KvReadOk, KvWriteOk};
 use std::collections::HashMap;
@@ -17,11 +19,16 @@ static KVSTORE: Lazy<tokio::sync::RwLock<HashMap<String, String>>> =
 
 #[tokio::main]
 async fn main() {
+    let args = CliArgs::parse();
+
     let app = Router::new()
         .route("/", post(handle_insert))
+        .route("/", get("Try POSTing to / instead"))
         .route("/:key", get(handle_read));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind((args.address, args.port))
+        .await
+        .unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -49,6 +56,6 @@ async fn handle_insert(value: String) -> Result<KvWriteOk, KvWriteError> {
         }
 
         map.insert(key.clone(), value);
-        break Ok(KvWriteOk(key))
+        break Ok(KvWriteOk(key));
     }
 }

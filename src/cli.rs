@@ -1,14 +1,13 @@
 use std::net::IpAddr;
 
 use clap::Parser;
-use tokio::net::ToSocketAddrs;
 
 #[derive(Parser)]
 #[command(version)]
 pub struct CliArgs {
-    #[arg(short = 'p', long)]
-    port: u16,
+    #[arg(short = 'p', long, default_value_t = 443)]
+    pub port: u16,
 
-    #[arg(short = 'a', long)]
-    address: Box<dyn ToSocketAddrs>,
+    #[arg(short = 'a', long, default_value = "0.0.0.0")]
+    pub address: IpAddr,
 }
