@@ -1,3 +1,2 @@
-[build]
+[build.debug]
 rustflags = ["-C", "link-arg=-fuse-ld=lld"]
-
