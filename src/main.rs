@@ -2,6 +2,7 @@ mod cli;
 mod response;
 mod util;
 
+use anyhow::Context;
 use axum::extract::Path;
 use axum::routing::get;
 use clap::Parser;
@@ -9,6 +10,7 @@ use cli::CliArgs;
 use response::err::{KvReadError, KvWriteError};
 use response::ok::{KvReadOk, KvWriteOk};
 use std::collections::HashMap;
+use tokio::net::TcpListener;
 
 use axum::{routing::post, Router};
 use once_cell::sync::Lazy;
@@ -18,7 +20,7 @@ static KVSTORE: Lazy<tokio::sync::RwLock<HashMap<String, String>>> =
     Lazy::new(|| tokio::sync::RwLock::new(HashMap::new()));
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), anyhow::Error> {
     let args = CliArgs::parse();
 
     let app = Router::new()
@@ -26,10 +28,16 @@ async fn main() {
         .route("/", get("Try POSTing to / instead"))
         .route("/:key", get(handle_read));
 
-    let listener = tokio::net::TcpListener::bind((args.address, args.port))
+    let listener = TcpListener::bind((args.address, args.port))
         .await
-        .unwrap();
-    axum::serve(listener, app).await.unwrap();
+        .context(format!(
+            "Couldn't bind to address {}, port {}",
+            args.address, args.port
+        ))?;
+
+    // Infallible, ok to unwrap.
+    axum::serve(listener, app).await?;
+    Ok(())
 }
 
 async fn handle_read(Path(key): Path<String>) -> Result<KvReadOk, KvReadError> {
